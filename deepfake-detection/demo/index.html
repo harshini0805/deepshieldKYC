@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FED-MEMF | Deepfake Defense — Live eKYC</title>
+<style>
+  :root{
+    --bg:#070b18; --panel:#0d1428; --panel2:#111a33; --edge:#1d2b4d;
+    --ink:#e8eefc; --muted:#7e8db5; --cyan:#23d3ee; --teal:#19b8a6;
+    --green:#22c98a; --amber:#f5b13d; --red:#ff4d63; --violet:#8b7dff;
+    --grid:#16213f;
+    --shadow:0 8px 30px rgba(0,0,0,.45);
+    --mono:"SFMono-Regular",Consolas,"Roboto Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(35,211,238,.07), transparent),
+      radial-gradient(900px 500px at -10% 110%, rgba(139,125,255,.08), transparent),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans); overflow-x:hidden;
+  }
+  .wrap{max-width:1320px;margin:0 auto;padding:18px 22px 40px}
+  /* Header */
+  header{display:flex;align-items:center;gap:16px;padding:6px 0 14px;border-bottom:1px solid var(--edge)}
+  .logo{display:flex;align-items:center;gap:12px}
+  .mark{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--violet));
+    display:grid;place-items:center;font-weight:800;color:#04101e;box-shadow:var(--shadow);font-size:15px}
+  .title h1{font-size:17px;margin:0;letter-spacing:.3px}
+  .title p{margin:2px 0 0;font-size:11.5px;color:var(--muted);letter-spacing:.4px}
+  .spacer{flex:1}
+  .badge{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--amber);
+    border:1px solid rgba(245,177,61,.35);background:rgba(245,177,61,.08);
+    padding:5px 11px;border-radius:999px;letter-spacing:.6px;font-weight:600}
+  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber);animation:pulse 1.6s infinite}
+  .conn{font-size:11px;color:var(--muted);font-family:var(--mono);margin-left:6px}
+  .conn b{color:var(--teal)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* Pipeline rail */
+  .rail{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+  .stage{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden}
+  .stage .num{font-family:var(--mono);font-size:10px;color:var(--muted)}
+  .stage h3{margin:3px 0 6px;font-size:13px}
+  .stage .st{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}
+  .light{width:9px;height:9px;border-radius:50%;background:#33406b;transition:.3s}
+  .stage.active{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(35,211,238,.25), var(--shadow)}
+  .stage.pass .light{background:var(--green);box-shadow:0 0 10px var(--green)}
+  .stage.fail .light{background:var(--red);box-shadow:0 0 10px var(--red)}
+  .stage.run .light{background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:pulse 1s infinite}
+  .stage .bar{position:absolute;left:0;bottom:0;height:3px;width:0;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width .4s}
+  .arrow{position:absolute;right:-7px;top:50%;transform:translateY(-50%);z-index:2;color:var(--edge);font-size:16px}
+
+  /* Grid */
+  .grid{display:grid;grid-template-columns:1.05fr 1.35fr .9fr;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+  .card h2{font-size:12px;margin:0 0 10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+
+  /* Camera */
+  .cam{position:relative;border-radius:12px;overflow:hidden;background:#02060f;aspect-ratio:4/3}
+  video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  .overlay{position:absolute;inset:0;pointer-events:none}
+  .bbox{position:absolute;border:2px solid var(--cyan);border-radius:6px;box-shadow:0 0 0 2px rgba(35,211,238,.15);
+    transition:.25s; display:none}
+  .bbox.show{display:block}
+  .bbox .tag{position:absolute;top:-20px;left:0;font-family:var(--mono);font-size:10px;color:#04101e;background:var(--cyan);padding:1px 6px;border-radius:4px}
+  .scan{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0;}
+  .cam.live .scan{animation:scan 2.2s linear infinite;opacity:.9}
+  @keyframes scan{0%{top:4%}100%{top:96%}}
+  .camstats{display:flex;gap:14px;margin-top:9px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .camstats b{color:var(--ink);font-weight:600}
+  .noCam{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:12px;text-align:center;padding:20px}
+
+  /* Streams */
+  .stream{margin-bottom:13px}
+  .stream .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .stream .nm{font-size:12.5px;font-weight:600}
+  .stream .nm small{color:var(--muted);font-weight:400;font-size:10.5px;margin-left:6px}
+  .stream .val{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .track{height:9px;background:var(--grid);border-radius:6px;overflow:hidden;position:relative}
+  .fill{height:100%;width:0;border-radius:6px;transition:width .25s ease, background .25s}
+  .s1 .fill{background:linear-gradient(90deg,var(--teal),var(--cyan))}
+  .s2 .fill{background:linear-gradient(90deg,#3a86ff,var(--violet))}
+  .s3 .fill{background:linear-gradient(90deg,var(--violet),#d96bff)}
+  .fuse{margin-top:6px;padding:12px;border:1px dashed var(--edge);border-radius:11px;background:var(--panel2)}
+  .fuse .lbl{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .attn{display:flex;gap:4px;height:26px;align-items:flex-end;margin-bottom:9px}
+  .attn span{flex:1;background:linear-gradient(180deg,var(--cyan),rgba(35,211,238,.15));border-radius:2px;height:20%;transition:height .2s}
+  .fusedrow{display:flex;justify-content:space-between;align-items:center}
+  .fusedrow .big{font-family:var(--mono);font-size:18px;font-weight:700}
+
+  /* Verdict */
+  .verdict{text-align:center;padding:16px 10px;border-radius:13px;border:1px solid var(--edge);background:var(--panel2);transition:.3s}
+  .verdict .v{font-size:30px;font-weight:800;letter-spacing:1px;margin:2px 0}
+  .verdict .sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .verdict.real{border-color:var(--green);box-shadow:0 0 0 1px rgba(34,201,138,.3)}
+  .verdict.real .v{color:var(--green)}
+  .verdict.fake{border-color:var(--red);box-shadow:0 0 0 1px rgba(255,77,99,.35)}
+  .verdict.fake .v{color:var(--red)}
+  .verdict.unc{border-color:var(--amber)} .verdict.unc .v{color:var(--amber)}
+  .verdict.pending .v{color:var(--muted);font-size:22px}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+  .metric{background:var(--panel2);border:1px solid var(--edge);border-radius:10px;padding:9px 11px}
+  .metric .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .metric .vv{font-family:var(--mono);font-size:15px;margin-top:3px;font-weight:600}
+  .gauge{height:7px;background:var(--grid);border-radius:5px;margin-top:5px;overflow:hidden}
+  .gauge i{display:block;height:100%;width:0;background:var(--cyan);transition:.3s}
+  .buf{display:flex;gap:2px;margin-top:5px;flex-wrap:wrap}
+  .buf i{width:9px;height:9px;border-radius:2px;background:var(--grid);transition:.1s}
+  .buf i.on{background:var(--cyan)}
+
+  /* Controls */
+  .controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px;align-items:center}
+  button{font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--ink);
+    background:var(--panel2);border:1px solid var(--edge);padding:9px 15px;border-radius:9px;cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--cyan);transform:translateY(-1px)}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.primary{background:linear-gradient(135deg,var(--cyan),var(--teal));color:#04101e;border:none}
+  button.danger{border-color:rgba(255,77,99,.5);color:#ffb3bd}
+  button.ok{border-color:rgba(34,201,138,.5);color:#9af0c8}
+  .toggle{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+  .switch{position:relative;width:42px;height:22px;background:var(--grid);border-radius:999px;cursor:pointer;border:1px solid var(--edge);transition:.2s}
+  .switch i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:.2s}
+  .switch.on{background:rgba(35,211,238,.25);border-color:var(--cyan)}
+  .switch.on i{left:22px;background:var(--cyan)}
+  .log{margin-top:14px;background:#050a16;border:1px solid var(--edge);border-radius:11px;
+    padding:11px 13px;font-family:var(--mono);font-size:11px;color:var(--muted);height:118px;overflow:auto;line-height:1.7}
+  .log .t{color:#46577f}
+  .log .g{color:var(--green)} .log .r{color:var(--red)} .log .c{color:var(--cyan)} .log .a{color:var(--amber)}
+  footer{margin-top:18px;font-size:10.5px;color:var(--muted);text-align:center;line-height:1.6}
+  @media(max-width:1000px){.grid{grid-template-columns:1fr}.rail{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <div class="mark">FM</div>
+      <div class="title">
+        <h1>FED-MEMF &nbsp;Deepfake Defense</h1>
+        <p>Multi-Modal eKYC Identity Verification &middot; Layer 3 Pipeline</p>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="conn">backend: <b id="connState">standalone</b></div>
+    <div class="badge"><span class="dot"></span> SIMULATED DEMO</div>
+  </header>
+
+  <!-- Pipeline rail -->
+  <div class="rail" id="rail">
+    <div class="stage" data-stage="liveness">
+      <div class="num">STAGE 01</div><h3>Liveness Check</h3>
+      <div class="st"><span class="light"></span><span class="lbl">idle</span></div>
+      <div class="bar"></div><div class="arrow">&#9656;</div>
+    </div>
+    <div class="stage" data-stage="deepfake">
+      <div class="num">STAGE 02</div><h3>Deepfake Detection</h3>
+      <div class="st"><span class="light"></span><span class="lbl">idle</span></div>
+      <div class="bar"></div><div class="arrow">&#9656;</div>
+    </div>
+    <div class="stage" data-stage="faceverify">
+      <div class="num">STAGE 03</div><h3>Face Verification</h3>
+      <div class="st"><span class="light"></span><span class="lbl">idle</span></div>
+      <div class="bar"></div><div class="arrow">&#9656;</div>
+    </div>
+    <div class="stage" data-stage="decision">
+      <div class="num">STAGE 04</div><h3>Decision</h3>
+      <div class="st"><span class="light"></span><span class="lbl">idle</span></div>
+      <div class="bar"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Camera -->
+    <div class="card">
+      <h2>Capture &middot; WebSocket Stream</h2>
+      <div class="cam" id="cam">
+        <video id="video" autoplay muted playsinline></video>
+        <div class="overlay">
+          <div class="bbox" id="bbox"><span class="tag">FACE 0.98</span></div>
+          <div class="scan"></div>
+        </div>
+        <div class="noCam" id="noCam">Camera off.<br/>Click <b>Start Camera</b> to begin live capture.</div>
+      </div>
+      <div class="camstats">
+        <div>FPS <b id="fps">--</b></div>
+        <div>LATENCY <b id="capLat">--</b> ms</div>
+        <div>RES <b id="res">--</b></div>
+        <div>FRAMES <b id="frames">0</b></div>
+      </div>
+    </div>
+
+    <!-- Streams + fusion -->
+    <div class="card">
+      <h2>Cross-Modal Detection Engine</h2>
+      <div class="stream s1">
+        <div class="top"><div class="nm">Stream 1 &middot; Visual<small>&micro;-Transformer / micro-expressions</small></div><div class="val" id="v1">0.00</div></div>
+        <div class="track"><div class="fill" id="f1"></div></div>
+      </div>
+      <div class="stream s2">
+        <div class="top"><div class="nm">Stream 2 &middot; Audio<small>CNN / voice-clone artifacts</small></div><div class="val" id="v2">0.00</div></div>
+        <div class="track"><div class="fill" id="f2"></div></div>
+      </div>
+      <div class="stream s3">
+        <div class="top"><div class="nm">Stream 3 &middot; Metadata<small>LSTM / behavioral telemetry</small></div><div class="val" id="v3">0.00</div></div>
+        <div class="track"><div class="fill" id="f3"></div></div>
+      </div>
+      <div class="fuse">
+        <div class="lbl"><span class="light" style="background:var(--violet);box-shadow:0 0 8px var(--violet)"></span> Cross-Modal Attention Fusion &middot; w = [0.4, 0.4, 0.2]</div>
+        <div class="attn" id="attn"></div>
+        <div class="fusedrow">
+          <div style="font-size:11px;color:var(--muted)">Fused P(FAKE) &middot; EMA smoothed</div>
+          <div class="big" id="fused">0.000</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Verdict -->
+    <div class="card">
+      <h2>Verdict</h2>
+      <div class="verdict pending" id="verdict">
+        <div class="sub">SESSION</div>
+        <div class="v" id="vText">PENDING</div>
+        <div class="sub" id="vSub">awaiting frames</div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="k">Confidence</div><div class="vv" id="mConf">--</div>
+          <div class="gauge"><i id="gConf"></i></div></div>
+        <div class="metric"><div class="k">Inference</div><div class="vv" id="mLat">-- ms</div></div>
+        <div class="metric"><div class="k">Smoothed</div><div class="vv" id="mScore">--</div></div>
+        <div class="metric"><div class="k">Liveness</div><div class="vv" id="mLive">--</div></div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="k" style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">32-Frame Buffer</div>
+        <div class="buf" id="buf"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="btnCam">Start Camera</button>
+    <button class="ok" id="btnReal" disabled>&#9654; Run REAL scenario</button>
+    <button class="danger" id="btnFake" disabled>&#9654; Run DEEPFAKE scenario</button>
+    <button id="btnReset" disabled>Reset Session</button>
+    <div class="toggle">
+      Connect backend
+      <div class="switch" id="swBackend"><i></i></div>
+    </div>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <footer>
+    FED-MEMF architecture demo &middot; scores are <b>simulated for demonstration</b> and do not reflect a trained model.<br/>
+    Pipeline: Liveness &rarr; Deepfake Detection &rarr; Face Verification &rarr; Decision &middot; thresholds: fake&ge;0.60, uncertain&ge;0.35
+  </footer>
+</div>
+
+<script>
+/* ----------------------------------------------------------------------------
+   FED-MEMF demo controller.
+   Everything here is a SIMULATION for presentation. No real classification runs.
+   Two modes:
+     - standalone : scores generated locally (default, always works)
+     - connected  : if backend toggle is on, opens ws to the mock FastAPI server
+---------------------------------------------------------------------------- */
+const $ = s => document.querySelector(s);
+const el = {
+  video:$("#video"), cam:$("#cam"), noCam:$("#noCam"), bbox:$("#bbox"),
+  fps:$("#fps"), capLat:$("#capLat"), res:$("#res"), frames:$("#frames"),
+  v1:$("#v1"),v2:$("#v2"),v3:$("#v3"), f1:$("#f1"),f2:$("#f2"),f3:$("#f3"),
+  attn:$("#attn"), fused:$("#fused"),
+  verdict:$("#verdict"), vText:$("#vText"), vSub:$("#vSub"),
+  mConf:$("#mConf"), gConf:$("#gConf"), mLat:$("#mLat"), mScore:$("#mScore"), mLive:$("#mLive"),
+  buf:$("#buf"), log:$("#log"), connState:$("#connState"),
+  btnCam:$("#btnCam"), btnReal:$("#btnReal"), btnFake:$("#btnFake"), btnReset:$("#btnReset"),
+  swBackend:$("#swBackend"),
+};
+const TH = {fake:0.60, uncertain:0.35};
+const BUF = 32;
+let stream=null, frameTimer=null, frameCount=0, running=false, useBackend=false, ws=null;
+let ema=0.5, hasPrior=false;
+
+/* build buffer + attention cells */
+for(let i=0;i<BUF;i++){const b=document.createElement('i');el.buf.appendChild(b);}
+for(let i=0;i<16;i++){const a=document.createElement('span');el.attn.appendChild(a);}
+const bufCells=[...el.buf.children], attnCells=[...el.attn.children];
+
+function log(msg, cls=''){
+  const t=new Date().toLocaleTimeString('en-GB');
+  el.log.insertAdjacentHTML('afterbegin',`<div><span class="t">${t}</span> <span class="${cls}">${msg}</span></div>`);
+}
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const clamp=(x)=>Math.max(0,Math.min(1,x));
+
+/* ---- camera ---- */
+async function startCam(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:false});
+    el.video.srcObject=stream; el.noCam.style.display='none'; el.cam.classList.add('live');
+    el.video.onloadedmetadata=()=>{el.res.textContent=el.video.videoWidth+'x'+el.video.videoHeight;};
+    el.btnCam.textContent='Stop Camera';
+    el.btnReal.disabled=false; el.btnFake.disabled=false; el.btnReset.disabled=false;
+    showBbox(true);
+    log('Camera started &middot; capture @ ~21 FPS','c');
+    startFrameLoop();
+  }catch(e){ log('Camera permission denied or unavailable: '+e.message,'r'); }
+}
+function stopCam(){
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  el.cam.classList.remove('live'); el.noCam.style.display='grid';
+  el.video.srcObject=null; el.btnCam.textContent='Start Camera';
+  el.btnReal.disabled=true; el.btnFake.disabled=true; clearInterval(frameTimer);
+  showBbox(false);
+  log('Camera stopped');
+}
+function showBbox(v){ el.bbox.classList.toggle('show',v);
+  if(v){ // place a centered, gently drifting box
+    const place=()=>{ if(!el.bbox.classList.contains('show'))return;
+      const w=46+rnd(-2,2), h=58+rnd(-2,2), x=27+rnd(-2,2), y=14+rnd(-2,2);
+      el.bbox.style.left=x+'%';el.bbox.style.top=y+'%';el.bbox.style.width=w+'%';el.bbox.style.height=h+'%';
+      setTimeout(place,700);
+    }; place();
+  }
+}
+function startFrameLoop(){
+  let last=performance.now();
+  clearInterval(frameTimer);
+  frameTimer=setInterval(()=>{
+    const now=performance.now(); const dt=now-last; last=now;
+    frameCount++; el.frames.textContent=frameCount;
+    el.fps.textContent=(1000/dt).toFixed(0);
+    el.capLat.textContent=(dt+rnd(-3,4)).toFixed(1);
+  },1000/21);
+}
+
+/* ---- stream display ---- */
+function setStreams(s1,s2,s3){
+  el.v1.textContent=s1.toFixed(2); el.f1.style.width=(s1*100)+'%';
+  el.v2.textContent=s2.toFixed(2); el.f2.style.width=(s2*100)+'%';
+  el.v3.textContent=s3.toFixed(2); el.f3.style.width=(s3*100)+'%';
+  recolor(el.f1,s1);recolor(el.f2,s2);recolor(el.f3,s3);
+  attnCells.forEach(a=>a.style.height=(15+Math.random()*85)+'%');
+}
+function recolor(node,v){
+  node.style.background = v>=TH.fake ? 'linear-gradient(90deg,#ff6b7d,var(--red))'
+    : v>=TH.uncertain ? 'linear-gradient(90deg,#f5c451,var(--amber))' : '';
+}
+function setBuffer(n){ bufCells.forEach((b,i)=>b.classList.toggle('on',i<n)); }
+function setStage(name,state,label){
+  const s=document.querySelector(`.stage[data-stage="${name}"]`);
+  s.classList.remove('active','run','pass','fail');
+  if(state) s.classList.add(state==='pass'?'pass':state==='fail'?'fail':'run','active');
+  s.querySelector('.lbl').textContent=label||state||'idle';
+  s.querySelector('.bar').style.width = state?'100%':'0';
+}
+function resetStages(){['liveness','deepfake','faceverify','decision'].forEach(n=>setStage(n,null,'idle'));}
+
+/* ---- verdict ---- */
+function setVerdict(v, smoothed, conf, lat, live){
+  el.verdict.className='verdict '+({REAL:'real',DEEPFAKE:'fake',UNCERTAIN:'unc',PENDING:'pending'}[v]||'pending');
+  el.vText.textContent=v;
+  el.vSub.textContent={REAL:'identity authentic',DEEPFAKE:'synthetic media detected',
+    UNCERTAIN:'routed to human review',PENDING:'awaiting frames'}[v];
+  el.fused.textContent=smoothed.toFixed(3);
+  el.mScore.textContent=smoothed.toFixed(3);
+  el.mConf.textContent=(conf*100).toFixed(0)+'%'; el.gConf.style.width=(conf*100)+'%';
+  el.mLat.textContent=lat.toFixed(0)+' ms';
+  el.mLive.textContent=live.toFixed(2);
+}
+
+/* ---- scenario engine (standalone simulation) ---- */
+async function runScenario(kind){
+  if(running) return;
+  if(useBackend && ws && ws.readyState===1){ ws.send(JSON.stringify({scenario:kind})); return; }
+  running=true; el.btnReal.disabled=true; el.btnFake.disabled=true;
+  resetSession(false);
+  const live = kind==='fake'? rnd(0.82,0.93) : rnd(0.94,0.99);
+
+  // Stage 1: liveness
+  setStage('liveness','run','analyzing'); log('Liveness: analyzing texture + depth cues...','c');
+  await frames(8, ()=>{}, 0);
+  setStage('liveness','pass','PASS  '+live.toFixed(2)); log('Liveness PASS &middot; score '+live.toFixed(2),'g');
+
+  // Stage 2: deepfake detection over 32-frame window
+  setStage('deepfake','run','32-frame window');
+  log('Deepfake: filling 32-frame buffer, running 3 streams...','c');
+  // target stream scores
+  const tgt = kind==='fake'
+     ? {s1:rnd(0.71,0.86), s2:rnd(0.63,0.82), s3:rnd(0.55,0.74)}
+     : {s1:rnd(0.05,0.16), s2:rnd(0.06,0.20), s3:rnd(0.10,0.24)};
+  let lat=0;
+  for(let n=1;n<=BUF;n++){
+    const p=n/BUF;
+    const s1=clamp(tgt.s1*p + rnd(-.05,.05));
+    const s2=clamp(tgt.s2*p + rnd(-.05,.05));
+    const s3=clamp(tgt.s3*p + rnd(-.05,.05));
+    setStreams(s1,s2,s3); setBuffer(n);
+    const fused = 0.4*s1 + 0.4*s2 + 0.2*s3;
+    ema = hasPrior ? 0.6*fused + 0.4*ema : (hasPrior=true, fused);
+    lat = rnd(74,89);
+    el.fused.textContent=ema.toFixed(3);
+    await sleep(48);
+  }
+  const conf=Math.min(Math.abs(ema-0.5)*2,1);
+  let verdict = ema>=TH.fake?'DEEPFAKE':ema>=TH.uncertain?'UNCERTAIN':'REAL';
+  setVerdict(verdict, ema, conf, lat, live);
+
+  if(verdict==='DEEPFAKE'){
+    setStage('deepfake','fail','DEEPFAKE '+ema.toFixed(2));
+    log('Deepfake DETECTED &middot; fused P(FAKE)='+ema.toFixed(3)+' &middot; '+lat.toFixed(0)+'ms','r');
+    setStage('faceverify',null,'skipped');
+    setStage('decision','fail','REJECTED');
+    log('SESSION_REJECTED &middot; ws close 1008','r');
+  }else if(verdict==='UNCERTAIN'){
+    setStage('deepfake','run','UNCERTAIN');
+    log('Deepfake UNCERTAIN &middot; '+ema.toFixed(3)+' &middot; human review queue','a');
+    setStage('faceverify',null,'on hold'); setStage('decision','run','REVIEW');
+  }else{
+    setStage('deepfake','pass','REAL '+ema.toFixed(2));
+    log('Deepfake PASS &middot; fused P(FAKE)='+ema.toFixed(3)+' &middot; '+lat.toFixed(0)+'ms','g');
+    // Stage 3: face verification
+    setStage('faceverify','run','matching');
+    log('Face Verification: matching against enrolled identity...','c');
+    await sleep(700);
+    const match=rnd(0.88,0.97);
+    setStage('faceverify','pass','MATCH '+match.toFixed(2)); log('Face match '+match.toFixed(2),'g');
+    setStage('decision','pass','APPROVED'); log('DECISION: APPROVED &middot; all gates passed','g');
+  }
+  running=false; el.btnReal.disabled=false; el.btnFake.disabled=false;
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function frames(n,fn,ms){for(let i=0;i<n;i++){fn(i);await sleep(ms||40);}}
+
+/* ---- reset ---- */
+function resetSession(doLog=true){
+  ema=0.5; hasPrior=false; setStreams(0,0,0); setBuffer(0);
+  setVerdict('PENDING',0.5,0,0,0); el.mLat.textContent='-- ms'; el.mConf.textContent='--';
+  el.gConf.style.width='0'; el.mScore.textContent='--'; el.mLive.textContent='--';
+  resetStages();
+  if(doLog) log('Session reset &middot; buffer cleared');
+}
+
+/* ---- backend (optional) ---- */
+function connectBackend(){
+  const url='ws://localhost:8000/demo/ws/demo-session';
+  try{
+    ws=new WebSocket(url);
+    ws.onopen=()=>{el.connState.textContent='connected';log('Backend connected: '+url,'g');};
+    ws.onclose=()=>{el.connState.textContent='standalone';if(useBackend)log('Backend closed &middot; using standalone sim','a');};
+    ws.onerror=()=>{el.connState.textContent='standalone';log('Backend unreachable &middot; standalone sim active','a');};
+    ws.onmessage=ev=>handleBackend(JSON.parse(ev.data));
+  }catch(e){ log('Backend connect failed: '+e.message,'r'); }
+}
+function handleBackend(m){
+  if(m.event==='SESSION_REJECTED'){ log('SESSION_REJECTED (backend)','r'); running=false;
+    el.btnReal.disabled=false; el.btnFake.disabled=false; return; }
+  if(m.stage){ setStage(m.stage, m.state, m.label); }
+  if('visual_score' in m){
+    setStreams(m.visual_score,m.audio_score,m.metadata_score); setBuffer(m.buffer_fill||0);
+    setVerdict(m.verdict, m.smoothed_score, m.confidence, m.inference_latency_ms, m.liveness_score||0);
+  }
+  if(m.done){ running=false; el.btnReal.disabled=false; el.btnFake.disabled=false; }
+}
+
+/* ---- wire up ---- */
+el.btnCam.onclick=()=> stream?stopCam():startCam();
+el.btnReal.onclick=()=>runScenario('real');
+el.btnFake.onclick=()=>runScenario('fake');
+el.btnReset.onclick=()=>resetSession();
+el.swBackend.onclick=()=>{
+  useBackend=!useBackend; el.swBackend.classList.toggle('on',useBackend);
+  if(useBackend){connectBackend();} else if(ws){ws.close();ws=null;el.connState.textContent='standalone';}
+};
+resetSession(false);
+log('FED-MEMF demo ready &middot; standalone simulation mode','c');
+log('Start the camera, then run a REAL or DEEPFAKE scenario.');
+</script>
+</body>
+</html>

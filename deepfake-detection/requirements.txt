@@ -1,0 +1,31 @@
+# FED-MEMF Deepfake Detection Layer — Dependencies
+# Install with: pip install -r requirements.txt
+
+# ─── Core inference stack ────────────────────────────────────────────────────
+torch>=2.2.0                  # PyTorch (CUDA 12.1 wheels: https://pytorch.org/get-started)
+torchvision>=0.17.0
+timm>=0.9.16                  # EfficientNet-B4, XceptionNet, ViT backbones
+
+# ─── Image/video processing ──────────────────────────────────────────────────
+opencv-python-headless>=4.9.0  # Frame decoding, face crop
+mediapipe>=0.10.9              # Face detection (shared with liveness layer)
+Pillow>=10.2.0                 # torchvision transforms
+
+# ─── API / WebSocket ─────────────────────────────────────────────────────────
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+websockets>=12.0
+pydantic>=2.6.0
+
+# ─── Numerics ────────────────────────────────────────────────────────────────
+numpy>=1.26.0
+
+# ─── Optional: fine-tuning on FaceForensics++ ────────────────────────────────
+# Uncomment when running training:
+# scikit-learn>=1.4.0          # Metrics (AUC, confusion matrix)
+# albumentations>=1.4.0        # Advanced augmentation
+# tqdm>=4.66.0
+
+# ─── Development & evaluation ────────────────────────────────────────────────
+# pytest>=8.0.0
+# httpx>=0.27.0                 # Async test client for FastAPI

@@ -1,0 +1,36 @@
+# ─── Datasets (NEVER commit — multi-GB) ───────────────────────────────
+data/
+*.jpg
+*.jpeg
+*.png
+!demo/**/*.png        # keep any demo assets if added later
+
+# ─── Model weights & training artifacts (large / regenerable) ─────────
+weights/
+*.pth
+*.pt
+*.onnx
+*.safetensors
+*.ckpt
+
+# ─── Python ───────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ─── Caches / local ───────────────────────────────────────────────────
+.cache/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ─── Large source media (push the .pptx via the deck repo, not code) ──
+*.pptx
+*.mp4
+*.mov
